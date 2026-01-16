@@ -12,6 +12,14 @@ Note: The materials in this course were created by both myself and [Lesa Hoffman
 
 The course will provide all readings on our course Canvas site.
 
+## Helpful R Links
+
+| Resource                            | Link                           |
+|-------------------------------------|--------------------------------|
+| R for Data Science (Intro R E-book) | <https://r4ds.had.co.nz>       |
+| Advanced R (next steps in R E-book) | <https://adv-r.hadley.nz>      |
+| rig (R Installation Manager)        | <https://github.com/r-lib/rig> |
+
 ## Course Details
 
 +--------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -81,7 +89,7 @@ th, td {
 |           |                                                                 | -   [R Syntax](https://github.com/jonathantemplin/Multivariate-Modeling-Spring-2026/blob/main/lectures/Lecture02_R/02_MakeFriendsWithR.R)                                                                                     |
 |           |                                                                 | -   [CSV Data File](https://github.com/jonathantemplin/Multivariate-Modeling-Spring-2026/blob/main/lectures/Lecture02_R/heights.csv)                                                                                          |
 |           |                                                                 | -   [SAV Data File](https://github.com/jonathantemplin/Multivariate-Modeling-Spring-2026/blob/main/lectures/Lecture02_R/wide.sav)                                                                                             |
-|           |                                                                 | -   Lecture Video (available after class)                                                                                                                                                                                     |
+|           |                                                                 | -   [Lecture Video (available after class)](https://youtu.be/OmuH2FNF1bM)                                                                                                                                                     |
 +-----------+-----------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | 22 Jan    | Linear Model Interactions (Moderation)                          | **Readings**                                                                                                                                                                                                                  |
 |           |                                                                 |                                                                                                                                                                                                                               |
