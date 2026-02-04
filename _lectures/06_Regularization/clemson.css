@@ -1,0 +1,114 @@
+/* Clemson University Branding Palette */
+:root {
+  --clemson-orange: #F56600;
+  --clemson-purple: #522D80;
+  --clemson-white: #FFFFFF;
+  --text-dark: #333333;
+  --light-gray: #F4F4F4;
+}
+
+/* GLOBAL SETTINGS */
+.reveal {
+  background-color: var(--clemson-white);
+  color: var(--text-dark);
+  font-family: 'Trade Gothic Next', 'Roboto', sans-serif; /* Clean sans-serif for slides */
+}
+
+/* HEADERS */
+.reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5, .reveal h6 {
+  color: var(--clemson-purple);
+  font-family: 'Goudy Old Style', 'Georgia', serif; /* Academic serif for headers */
+  font-weight: bold;
+  text-transform: none; /* Avoid all-caps for better readability */
+  font-size: 1em !important; 
+}
+
+/* Main Title Slide Specifics */
+.reveal .title-slide h1 {
+  color: var(--clemson-orange);
+  border-bottom: 3px solid var(--clemson-purple);
+  padding-bottom: 20px;
+  font-size: 1.5em !important; 
+}
+
+.reveal .title-slide .subtitle {
+  color: var(--clemson-purple);
+  font-style: italic;
+  font-weight: normal;
+}
+
+/* Slide Titles (h2 usually) */
+.reveal h2 {
+  border-bottom: 2px solid var(--clemson-orange);
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+  font-size: 1.2em !important; /* Forces the size change */
+}
+
+/* LINKS */
+.reveal a {
+  color: var(--clemson-orange);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.reveal a:hover {
+  color: var(--clemson-purple);
+  text-decoration: underline;
+}
+
+/* LISTS & BULLET POINTS */
+.reveal ul {
+  list-style-type: disc; /* Reverts to standard bullet points */
+  margin-left: 1.5em;    /* Ensures proper indentation */
+  padding-left: 0;
+  color: var(--text-dark);
+  font-size: 0.8em;
+}
+
+.reveal ul ul {
+  list-style-type: circle; /* Nested lists get circle bullets */
+}
+
+/* BLOCKQUOTES */
+.reveal blockquote {
+  background: rgba(82, 45, 128, 0.05); /* Very light purple tint */
+  border-left: 5px solid var(--clemson-orange);
+  color: var(--clemson-purple);
+  padding: 10px 20px;
+  font-style: italic;
+  box-shadow: none;
+  width: 90%;
+}
+
+/* CODE BLOCKS */
+.reveal pre code {
+  background-color: #f0f0f0;
+  border: 1px solid var(--clemson-purple);
+  border-radius: 5px;
+  color: var(--text-dark);
+}
+
+/* FOOTERS / SLIDE NUMBERS */
+.reveal .slide-number {
+  color: var(--clemson-purple);
+  background-color: transparent;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* PROGRESS BAR */
+.reveal .progress {
+  color: var(--clemson-orange);
+}
+
+.reveal .progress span {
+  background-color: var(--clemson-orange);
+}
+
+/* ACCENT COLUMNS */
+/* Use .alert class in markdown like [Text]{.alert} */
+.alert {
+  color: var(--clemson-orange);
+  font-weight: bold;
+}
