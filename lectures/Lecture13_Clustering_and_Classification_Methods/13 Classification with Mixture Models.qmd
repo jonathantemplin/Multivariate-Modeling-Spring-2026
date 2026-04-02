@@ -1,0 +1,826 @@
+---
+title: "Classification Methods: Mixture Models"
+subtitle: "Latent Class & Latent Profile Analysis"
+format:
+  revealjs:
+    theme: simple
+    css: clemson.css
+    slide-number: true
+    logo: clemson_coe.png
+    transition: slide
+    chalkboard: true
+    preview-links: auto
+execute:
+  echo: false
+  eval: true
+---
+
+## Lecture Outline
+
+- Latent Class Analysis (LCA)
+  - Underlying theory
+  - Example analysis in R (`poLCA`)
+  - Interpreting model parameters
+  - Assessing model fit
+- Latent Profile Analysis (LPA)
+  - Underlying theory
+  - Example analysis in R (`tidyLPA`)
+  - Comparing class solutions
+
+# Overview
+
+## Clusters Versus Classes
+
+- When a researcher mentions cluster analysis, they often mean one of the following:
+  - K-means clustering
+  - Hierarchical clustering using distance methods
+  - Discriminant analysis
+  - Taxometrics
+- Much less often, latent class analysis is included in the group
+  - Although it is also useful for detecting clusters of observations
+- For this lecture, we will consider *clusters* and *classes* to be synonymous
+  - Clustering is often used to *find* clusters whereas classification is used to classify observations into known clusters
+
+## LCA Versus Other Methods
+
+- Although we use the terms classes and clusters synonymously, LCA differs from other methods
+- **LCA is a model-based method** for clustering
+  - LCA fits a statistical model to the data to determine classes
+- Other methods (K-means, hierarchical) do not explicitly state a statistical model
+- Being model-based means we make **explicit, testable assumptions** about our data
+  - Assumptions can be checked against the observed data
+
+# Latent Class Analysis
+
+## {.center}
+
+::: {style="text-align: center; font-size: 2em;"}
+Latent Class Analysis
+:::
+
+## LCA Introduction
+
+- Latent class models are commonly attributed to Lazarsfeld and Henry (1968)
+- The final number of classes is **not predetermined** prior to analysis
+  - The number of classes is determined through comparison of fit statistics after fitting multiple models
+  - The characteristics of each class are determined following the analysis
+  - Similar to K-means and hierarchical clustering in this respect
+
+## Variable Types Used in LCA
+
+- As originally conceived, LCA uses:
+  - A set of **binary-outcome variables** — values coded as 0 or 1. Examples include:
+    - Test items — scored correct (1) or incorrect (0)
+    - True/false questions
+    - Presence/absence indicators
+    - Any other binary outcome
+- Extensions allow for **ordered categorical** or **nominal** indicators
+  - This general form is still called LCA regardless of indicator type
+
+## LCA Process
+
+- For a specified number of classes, LCA estimates:
+  1. **For each class:** the probability that each indicator equals one $\pi_{jc}$
+  2. **For each observation:** the probability of belonging to each class $\alpha_{ic}$
+     - These sum to 1 across classes for each person
+     - This differs from K-means, where class membership is certain
+  3. **Across observations:** the overall probability that any observation is in each class $\eta_c$
+
+## LCA Estimation
+
+- LCA estimation differs from other clustering methods:
+  - Hierarchical clustering creates new distance matrices at each step
+  - K-means shifts cases between clusters using distance metrics
+  - **LCA uses distributional assumptions** to find classes — the distribution provides the measure of "distance"
+- Estimation is performed via the **Expectation-Maximization (EM) algorithm**
+  - E-step: compute posterior class probabilities
+  - M-step: update model parameters to maximize log-likelihood
+  - Iterate until convergence
+- **Multiple random starting values** are recommended to avoid local maxima
+
+## LCA Distributional Assumptions
+
+- Because LCA uses binary-outcome variables, it relies on a **binary-outcome distribution**
+- Within each latent class, the variables are assumed to:
+  - Be **independent** of one another (*Local Independence*)
+  - Follow a **Bernoulli distribution** marginally:
+
+$$f(x_i) = \left(\pi_i \right)^{x_i} \left(1-\pi_i\right)^{(1-x_i)}$$
+
+- The Bernoulli distribution describes a single binary event — like flipping a coin with probability $\pi$ of heads
+
+## Bernoulli Distribution Illustration
+
+- Consider a single binary test item, $X$:
+  - Let $X = 1$ if a student answers correctly, $X = 0$ if incorrect
+  - Suppose the probability of a correct response is $\pi = 0.75$
+
+- If $X = 1$, the likelihood is:
+$$f(x_i=1) = (0.75)^{1}(1-0.75)^{0} = 0.75$$
+
+- If $X = 0$, the likelihood is:
+$$f(x_i=0) = (0.75)^{0}(1-0.75)^{1} = 0.25$$
+
+- For discrete-outcome variables, the likelihood equals the probability of the event occurring
+
+## Independent Bernoulli Variables
+
+- For **independent** binary variables, the joint probability is the product of the individual probabilities:
+
+$$P(X_1=x_1, X_2=x_2,\ldots,X_J=x_J) = \prod_{j=1}^{J} \pi_j^{x_j} \left(1-\pi_j\right)^{\left(1-x_j\right)}$$
+
+- In LCA, this independence assumption holds **within each class** (Local Independence)
+  - Conditional on class membership, knowing one item response gives no additional information about another item response
+  - Any association among observed variables is explained entirely by the latent class
+
+## Finite Mixture Models
+
+- LCA models are special cases of **Finite Mixture Models (FMM)**
+- A finite mixture model expresses the distribution of **X** as a weighted sum of class-specific distributions:
+
+$$f(\textbf{X}) = \sum_{g=1}^G \eta_g f(\textbf{X}|g)$$
+
+- $\eta_g$ is the mixing proportion for class $g$ (must sum to 1)
+- $f(\textbf{X}|g)$ is the class-specific distribution of **X**
+- In LCA, $f(\textbf{X}|g)$ is a product of Bernoulli distributions (due to local independence)
+
+## Latent Class Analysis as a FMM
+
+A latent class model for $J$ binary indicators ($j = 1,\ldots,J$) with $C$ classes ($c = 1,\ldots,C$):
+
+$$f(\mathbf{x}_i) = \displaystyle {\sum_{c=1}^{C} \eta_c} \prod_{j=1}^{J} \pi_{jc}^{x_{ij}} \left(1-\pi_{jc}\right)^{1-x_{ij}}$$
+
+- $\eta_c$ — probability that any individual is in class $c$ (must sum to 1)
+- $x_{ij}$ — observed binary response of individual $i$ to item $j$
+- $\pi_{jc}$ — probability of a positive response ($x_{ij} = 1$) for class $c$ on item $j$
+
+## Estimation Process
+
+- Successfully applying LCA involves answering two key questions:
+  1. **How many classes are present?**
+     - Fit LCA models with differing numbers of classes
+     - Choose based on fit statistics (AIC, BIC, chi-square, entropy)
+  2. **What does each class represent?**
+     - Inspect the item response probabilities ($\hat{\pi}_{jc}$) for the best-fitting solution
+     - Look for meaningful patterns distinguishing the classes
+
+## LCA in R: The `poLCA` Package
+
+- In R, the **`poLCA`** package (Linzer & Lewis, 2011) fits LCA models
+  - "**P**olytomous **V**ariable **L**atent **C**lass **A**nalysis"
+  - Handles binary and polytomous (multi-category) indicators
+  - Uses EM algorithm with multiple random starts
+- Install: `install.packages("poLCA")`
+
+## LCA in R: The `poLCA` Package
+
+
+| Argument | Description |
+|----------|-------------|
+| `formula` | `cbind(item1, item2, ...) ~ 1` |
+| `data` | Data frame; **item values must start at 1**, not 0 |
+| `nclass` | Number of latent classes to estimate |
+| `nrep` | Number of random starting points (≥ 10 recommended) |
+| `verbose` | `FALSE` to suppress iteration output |
+
+# LCA Example
+
+## {.center}
+
+::: {style="text-align: center; font-size: 2em;"}
+LCA Example #1
+:::
+
+## LCA Example: Macready & Dayton (1977)
+
+::: {.columns}
+::: {.column width="60%"}
+- Data discussed in Bartholomew and Knott (*Latent Variable Models and Factor Analysis*)
+- A four-item binary math test administered to $N = 142$ students
+- Macready and Dayton's goal: classify students into two latent groups:
+  - **Masters** — students who have mastered the content
+  - **Non-masters** — students who have not mastered the content
+- We will fit a **2-class LCA model** and interpret the results
+:::
+::: {.column width="40%"}
+
+| Variable | Description |
+|----------|-------------|
+| `u1` | Math item 1 (0/1) |
+| `u2` | Math item 2 (0/1) |
+| `u3` | Math item 3 (0/1) |
+| `u4` | Math item 4 (0/1) |
+
+
+:::
+:::
+
+## LCA in R: Data Preparation
+
+```{r}
+library(poLCA)
+
+# Load the data (comma-separated, no header)
+md_data = read.csv("mddata.dat", header = FALSE)
+colnames(md_data) = c("u1", "u2", "u3", "u4")
+
+# poLCA requires values starting at 1 (not 0)
+# Recode: 0 -> 1 (incorrect) and 1 -> 2 (correct)
+md_data = md_data + 1
+
+# Verify recoding
+head(md_data)
+table(md_data$u1)
+```
+
+::: {.callout-important}
+`poLCA` requires each item's values to be **positive integers starting at 1**. For binary items originally coded 0/1, add 1 to recode them as 1/2 before fitting.
+:::
+
+## LCA in R: Fitting the 2-Class Model
+
+```{r}
+# Define the model formula: all items as indicators, no covariates
+lca_formula = cbind(u1, u2, u3, u4) ~ 1
+
+# Fit 2-class LCA with 10 random starting points
+set.seed(123)
+lca_2class = poLCA(lca_formula,
+                   data    = md_data,
+                   nclass  = 2,
+                   nrep    = 10,
+                   verbose = FALSE)
+
+# Print a summary of results
+print(lca_2class)
+```
+
+- `nrep = 10` runs the algorithm 10 times with different random starts
+- The solution with the **highest log-likelihood** is retained
+- Increasing `nrep` reduces the chance of stopping at a local maximum
+
+## LCA Parameter Information Types
+
+Three types of information from an LCA model:
+
+1. **Class size estimates** ($\eta_c$)
+   - Proportion of the population in each class
+
+2. **Item response probabilities** ($\pi_{jc}$)
+   - Probability of a correct response to item $j$ for a person in class $c$
+
+3. **Posterior class probabilities** ($\alpha_{ic}$)
+   - Probability that individual $i$ belongs to class $c$, given their responses
+
+## Class Size Estimates ($\eta_c$)
+
+**From `poLCA` output:**
+
+```
+Estimated class population shares
+ 0.5866 0.4134
+
+Predicted class memberships (modal posterior prob.)
+ 0.5423 0.4577
+```
+
+- **Class 1:** approximately **58.7%** of the population ($\eta_1 = 0.587$)
+- **Class 2:** approximately **41.3%** of the population ($\eta_2 = 0.413$)
+
+::: {.callout-note}
+"Population shares" come from the model. "Predicted memberships" assign each person to their most probable class — these will differ slightly from the model-estimated shares.
+:::
+
+## Item Response Probability Estimates ($\pi_{jc}$)
+
+**From `poLCA` output** (Pr(2) = probability of correct response):
+
+```
+Conditional item response probabilities by class
+
+$u1      Pr(1)  Pr(2)         $u2      Pr(1)  Pr(2)
+ Class 1: 0.247  0.753          Class 1: 0.220  0.780
+ Class 2: 0.791  0.209          Class 2: 0.932  0.068
+
+$u3      Pr(1)  Pr(2)         $u4      Pr(1)  Pr(2)
+ Class 1: 0.568  0.432          Class 1: 0.292  0.708
+ Class 2: 0.982  0.018          Class 2: 0.948  0.052
+```
+
+- `Pr(2)` is the probability of a correct response (original code = 1)
+- Class 1 has **high** correct-response probabilities; Class 2 has **very low** probabilities
+
+## Interpreting the Classes
+
+| Item | Class 1 $\pi_{j1}$ | Class 2 $\pi_{j2}$ |
+|:----:|:---:|:---:|
+| u1 | 0.753 | 0.209 |
+| u2 | 0.780 | 0.068 |
+| u3 | 0.432 | 0.018 |
+| u4 | 0.708 | 0.052 |
+
+- **Class 1** — high probability of correct response across all items
+  - $\Rightarrow$ **Masters**: students who have mastered the material
+- **Class 2** — very low probability of correct response across all items
+  - $\Rightarrow$ **Non-masters**: students who have not mastered the material
+
+## Visualizing Item Response Profiles
+
+```{r, echo=FALSE, include=TRUE, eval=TRUE}
+library(ggplot2)
+
+# Extract Pr(correct) = Pr(2) for each item and class
+probs = data.frame(
+  item  = rep(c("u1", "u2", "u3", "u4"), 2),
+  class = rep(c("Class 1 (Masters)", "Class 2 (Non-Masters)"), each = 4),
+  prob  = c(lca_2class$probs$u1[1, 2],
+            lca_2class$probs$u2[1, 2],
+            lca_2class$probs$u3[1, 2],
+            lca_2class$probs$u4[1, 2],
+            lca_2class$probs$u1[2, 2],
+            lca_2class$probs$u2[2, 2],
+            lca_2class$probs$u3[2, 2],
+            lca_2class$probs$u4[2, 2])
+)
+
+ggplot(probs, aes(x = item, y = prob, group = class, color = class)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 3) +
+  scale_y_continuous(limits = c(0, 1), name = "P(Correct Response)") +
+  labs(x = "Item", title = "LCA Item Response Profiles", color = "Class") +
+  theme_bw(base_size = 14)
+```
+
+# Assessing Model Fit
+
+## {.center}
+
+::: {style="text-align: center; font-size: 2em;"}
+Assessing Model Fit
+:::
+
+## Approaches to Assessing LCA Fit
+
+- No single definitive approach — use multiple measures together:
+  - **Absolute fit**: model-based $\chi^2$ tests
+  - **Relative fit**: information criteria (AIC, BIC)
+  - **Classification quality**: entropy
+- The goal is to identify a parsimonious, substantively meaningful solution
+
+## Model Chi-Squared Test
+
+- The $\chi^2$ test compares **observed** response pattern frequencies to **model-expected** frequencies
+- For $J$ binary items, there are $p = 2^J$ possible response patterns
+- Degrees of freedom = number of response patterns $-$ model parameters $-$ 1
+- The Pearson statistic:
+
+$$\chi^2_p = \sum_r \frac{(O_r - E_r)^2}{E_r}$$
+
+## Model Chi-Squared Test Limitations
+
+- For $J$ binary items, there are $2^J$ possible response patterns
+
+- **Limitation:** invalid when many cells have small expected frequencies
+  - With $J = 4$ items: 16 patterns — feasible
+  - With $J = 20$ items: over 1 million patterns — infeasible
+
+## Chi-Squared in R
+
+```{r}
+# poLCA automatically computes chi-square tests in the model object
+lca_2class$Chisq   # Pearson chi-square statistic
+lca_2class$Gsq     # Likelihood ratio G^2 statistic
+lca_2class$df      # Degrees of freedom
+
+# Compute p-values
+pchisq(lca_2class$Chisq, df = lca_2class$resid.df, lower.tail = FALSE)
+pchisq(lca_2class$Gsq,   df = lca_2class$resid.df, lower.tail = FALSE)
+```
+
+**Results for the Macready & Dayton 2-class solution:**
+
+```
+Pearson chi-square (df = 6):  9.459   p = 0.149
+G-squared       (df = 6):     8.966   p = 0.176
+```
+
+Neither test is significant — the 2-class model fits the data adequately.
+
+## Log Likelihood
+
+- The **log-likelihood** measures how well the model reproduces the observed data:
+
+$$\log L = \sum_{k=1}^N \log \left( {\sum_{c=1}^{C} \eta_c} \prod_{j=1}^{J} \pi_{jc}^{x_{kj}} \left(1-\pi_{jc}\right)^{1-x_{kj}} \right)$$
+
+## Information Criteria
+
+- The **AIC** and **BIC** penalize the log-likelihood for model complexity:
+
+$$AIC = 2q - 2\log L \qquad BIC = q\log(N) - 2\log L$$
+
+- $q$ = number of free parameters; $N$ = sample size
+- **Lower values indicate better fit** (for comparing models with the same data)
+
+## Comparing Models in R
+
+```{r}
+# Fit 1-, 2-, and 3-class models
+set.seed(123)
+lca_1class = poLCA(lca_formula, data = md_data, nclass = 1,
+                   nrep = 5,  verbose = FALSE)
+lca_2class = poLCA(lca_formula, data = md_data, nclass = 2,
+                   nrep = 10, verbose = FALSE)
+lca_3class = poLCA(lca_formula, data = md_data, nclass = 3,
+                   nrep = 10, verbose = FALSE)
+
+# Compile fit statistics into a table
+fit_table = data.frame(
+  Classes    = 1:3,
+  Parameters = c(lca_1class$npar, lca_2class$npar, lca_3class$npar),
+  LogL       = c(lca_1class$llik, lca_2class$llik, lca_3class$llik),
+  AIC        = c(lca_1class$aic,  lca_2class$aic,  lca_3class$aic),
+  BIC        = c(lca_1class$bic,  lca_2class$bic,  lca_3class$bic)
+)
+print(fit_table, digits = 2)
+```
+
+## Information Criteria: Model Comparison
+
+**Fit statistics for the Macready & Dayton data:**
+
+| Classes | Parameters | Log L | AIC | BIC |
+|:---:|:---:|:---:|:---:|:---:|
+| 1 | 4 | −373.04 | 754.08 | 766.16 |
+| **2** | **9** | **−331.76** | **681.53** | **708.13** |
+| 3 | 14 | −331.49 | 690.97 | 733.10 |
+
+- Both AIC and BIC are **lowest for the 2-class solution** ✓
+- Adding a third class provides minimal improvement in log-likelihood
+- **The 2-class model is preferred** — consistent with Macready and Dayton's hypothesis
+
+## Entropy
+
+- **Entropy** measures how clearly each observation is classified into a class
+- Based on posterior class probabilities ($\hat{\alpha}_{ic}$)
+- The **relative entropy** (scaled to $[0, 1]$):
+  - **E near 1**: high classification certainty (each person clearly belongs to one class)
+  - **E near 0**: high uncertainty (posterior probabilities are diffuse across classes)
+
+$$E = 1 - \frac{-\displaystyle\sum_{i=1}^N \sum_{c=1}^C \hat{\alpha}_{ic} \log \hat{\alpha}_{ic}}{N \log C}$$
+
+
+## Computing Entropy in R
+
+```{r}
+# Relative entropy function for poLCA output
+compute_entropy = function(posterior) {
+  N = nrow(posterior)
+  C = ncol(posterior)
+  posterior = pmax(posterior, 1e-10)   # avoid log(0)
+  entropy_raw = -sum(posterior * log(posterior))
+  relative_entropy = 1 - entropy_raw / (N * log(C))
+  return(relative_entropy)
+}
+
+# Apply to the 2-class model
+entropy_2class = compute_entropy(lca_2class$posterior)
+cat("Relative Entropy (2-class):", round(entropy_2class, 3))
+```
+
+
+- Entropy of 0.754 indicates **good classification quality**
+- Most students are clearly classified as masters or non-masters
+
+# Latent Profile Analysis
+
+## {.center}
+
+::: {style="text-align: center; font-size: 2em;"}
+Latent Profile Analysis
+:::
+
+## LPA Introduction
+
+- Latent Profile Analysis (LPA) is the **continuous-variable analog to LCA**
+  - Also attributed to Lazarsfeld and Henry (1968)
+- Uses a set of **continuous variables** rather than binary indicators
+- The estimation process is the same: EM algorithm with multiple random starts
+- The key difference: **normal (Gaussian) distributions** replace Bernoulli distributions within each class
+
+## LPA Process
+
+- For a specified number of classes, LPA estimates:
+  1. **For each class:** the mean ($\mu_{jc}$) and variance ($\sigma^2_{jc}$) for each variable
+  2. **For each observation:** the probability of belonging to each class $\alpha_{ic}$
+     - These sum to 1 across classes for each person
+  3. **Across observations:** the overall class proportions $\eta_c$
+
+- The same three types of information as LCA:
+  - Class sizes, class-specific parameters, and posterior probabilities
+
+## LPA Distributional Assumptions
+
+- Within each latent class, the variables are assumed to:
+  - Be **independent** (local independence assumption, same as LCA)
+  - Follow a **normal distribution** marginally:
+
+$$f(x_i) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(\frac{-(x_i - \mu)^2}{2\sigma^2}\right)$$
+
+## LPA Distributional Assumptions
+
+- Different classes have different means — and possibly different variances
+- The **variance structure** across classes is an important modeling choice:
+  - **Equal variances** across classes (more parsimonious, common default)
+  - **Unequal variances** (more flexible, more parameters to estimate)
+
+## Multivariate Normal Distribution
+
+- Because LPA assumes independent normal variables within each class, the joint within-class distribution is **multivariate normal (MVN)** with a *diagonal* covariance matrix
+
+$$f(\textbf{x}) = \frac{1}{(2\pi)^{p/2}|\boldsymbol{\Sigma}|^{1/2}} \exp\left(-\frac{(\textbf{x}-\boldsymbol{\mu})^T\boldsymbol{\Sigma}^{-1}(\textbf{x}-\boldsymbol{\mu})}{2}\right)$$
+
+- $\boldsymbol{\mu}$ = class mean vector
+- $\boldsymbol{\Sigma}$ = covariance matrix (**diagonal** for standard LPA — no within-class correlations)
+- Standard notation: $\mathbf{x} \sim N_p(\boldsymbol{\mu}, \boldsymbol{\Sigma})$
+
+## Within-Class Covariance Structure
+
+- In standard LPA, within-class covariance is **zero** (local independence):
+  - Knowing one variable gives no additional information about another, given class
+
+- When within-class covariance is **non-zero**:
+  - Contours become **tilted ellipses**
+
+- The **local independence assumption** can be checked:
+  - Fit a model that allows within-class covariances and compare fit via AIC/BIC
+  - Persistent residual correlations within classes suggest the assumption is violated
+
+::: {.callout-tip}
+If you suspect within-class correlations, try `variances = "equal", covariances = "equal"` (Model 2) and compare fit statistics to Model 1.
+:::
+
+## LPA as a Finite Mixture Model
+
+A latent profile model for $J$ continuous variables $(j = 1,\ldots,J)$ with $C$ classes ($c = 1,\ldots,C$):
+
+$$f(\mathbf{x}_i) = \displaystyle {\sum_{c=1}^{C} \eta_c} \prod_{j=1}^{J} \frac{1}{\sqrt{2\pi\sigma^2_{jc}}} \exp\left(\frac{-(x_{ij} - \mu_{jc})^2}{2\sigma^2_{jc}}\right)$$
+
+- $\eta_c$ — class proportion (must sum to 1)
+- $\mu_{jc}$ — mean of variable $j$ in class $c$
+- $\sigma^2_{jc}$ — variance of variable $j$ in class $c$
+
+## LPA in R: The `tidyLPA` Package
+
+- In R, the **`tidyLPA`** package (Rosenberg et al., 2018) fits LPA models
+  - Wraps the `mclust` package with a cleaner interface
+  - Install: `install.packages("tidyLPA")`
+
+
+## LPA in R: The `tidyLPA` Package
+
+| Function | Description |
+|----------|-------------|
+| `estimate_profiles()` | Fits one or more LPA models |
+| `get_fit()` | Extracts fit statistics (log L, AIC, BIC, entropy) |
+| `get_estimates()` | Extracts class-specific means and variances |
+| `get_data()` | Returns data with posterior probabilities and class assignments |
+| `plot_profiles()` | Creates a class profile plot |
+
+## LPA Variance Model Options
+
+
+| Model | Variances | Covariances |
+|:---:|:---:|:---:|
+| 1 (default) | Equal across classes | Zero (diagonal) |
+| 2 | Equal across classes | Equal across classes |
+| 3 | **Varying** across classes | Zero (diagonal) |
+
+- **Model 1** matches the standard LPA assumption: equal variances, no within-class covariances
+
+## LPA Variance Model Options
+
+
+| Model | Variances | Covariances |
+|:---:|:---:|:---:|
+| 4 | **Varying** across classes | **Varying** across classes |
+| 5 | Equal across classes | **Varying** across classes |
+| 6 | **Varying** across classes | Equal across classes |
+
+
+- More complex models add parameters; use information criteria to compare
+
+# LPA Example
+
+## {.center}
+
+::: {style="text-align: center; font-size: 2em;"}
+LPA Example: Fisher's Iris Data
+:::
+
+## LPA Example: Fisher's Iris Data
+
+- Fisher (1936) introduced a dataset of measurements on 150 iris flowers
+- Four continuous measurements per flower:
+
+| Variable | Measurement |
+|----------|-------------|
+| x1 | Sepal length (cm) |
+| x2 | Sepal width (cm) |
+| x3 | Petal length (cm) |
+| x4 | Petal width (cm) |
+
+## LPA Example: Fisher's Iris Data
+
+- Three species: *Iris setosa*, *I. versicolor*, *I. virginica* (50 flowers each; $N = 150$)
+- We treat species membership as **unknown** and attempt to recover it via LPA
+
+## LPA in R: Loading Data and Fitting Models
+
+```{r, echo=FALSE}
+library(tidyLPA)
+
+# Load the Iris data (space-separated, no header, no species label)
+iris_dat = read.table("iris.dat", header = FALSE)
+colnames(iris_dat) = c("x1", "x2", "x3", "x4")
+
+# Fit LPA models with 2, 3, and 4 classes (Model 1: equal variances)
+lpa_models = estimate_profiles(iris_dat,
+                               n_profiles  = 2:4,
+                               variances   = "equal",
+                               covariances = "zero")
+
+# Compare fit statistics across models
+get_fit(lpa_models)
+```
+
+::: {.callout-note}
+`variances = "equal"` and `covariances = "zero"` specify Model 1 — equal variances across classes, no within-class covariances. This is the standard LPA assumption.
+:::
+
+## Model Comparison
+
+**Fit statistics for the Iris LPA (Model 1):**
+
+| Classes | Parameters | Log L | AIC | BIC | Entropy |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| 2 | 13 | −488.92 | 1003.83 | 1042.97 | 0.991 |
+| **3** | **18** | **−361.43** | **758.85** | **813.04** | **0.957** |
+| 4 | 23 | −310.12 | 666.23 | 735.48 | 0.945 |
+
+- AIC and BIC both favor the **4-class solution**
+- But the data were generated from **exactly 3 species**
+- This illustrates a known problem with information criteria in mixture modeling:
+  - They can favor over-extraction (more classes than truly exist)
+  - **Substantive knowledge and external validation are essential**
+- We select the **3-class solution** based on prior knowledge
+
+## Fitting the 3-Class Model
+
+```{r, echo=FALSE}
+# Fit the 3-class LPA model
+lpa_3class = estimate_profiles(iris_dat,
+                               n_profiles  = 3,
+                               variances   = "equal",
+                               covariances = "zero")
+
+# View class-specific estimates
+get_estimates(lpa_3class)
+```
+
+## Fitting the 3-Class Model
+
+```{r, echo=FALSE}
+# Add posterior probabilities and class assignments to the data
+lpa_3class_data = get_data(lpa_3class)
+head(lpa_3class_data)
+```
+
+## The 3-Class Solution: Class Sizes
+
+**From `get_fit()` output:**
+
+```
+FINAL CLASS COUNTS AND PROPORTIONS
+   Class 1:  50.000  (0.333)
+   Class 2:  54.888  (0.366)
+   Class 3:  45.112  (0.301)
+```
+
+- Three approximately equal classes, consistent with the true species distribution (50 per species)
+- The model has correctly identified the rough size structure
+
+## The 3-Class Solution: Class Means
+
+**Class-specific means from `get_estimates()`:**
+
+| Variable | Class 1 | Class 2 | Class 3 |
+|:---------|:---:|:---:|:---:|
+| x1 (Sepal Length) | 5.01 | 5.92 | 6.68 |
+| x2 (Sepal Width) | 3.43 | 2.75 | 3.02 |
+| x3 (Petal Length) | 1.46 | 4.33 | 5.61 |
+| x4 (Petal Width) | 0.25 | 1.35 | 2.07 |
+
+- **Class 1**: Very small petals, wide sepals → *Iris setosa*
+- **Class 2**: Medium-sized flowers, narrower sepals → *Iris versicolor*
+- **Class 3**: Largest petals and sepals → *Iris virginica*
+
+## Visualizing Class Profiles
+
+```{r}
+# Built-in profile plot (quickest option)
+plot_profiles(lpa_3class, add_line = TRUE, rawdata = FALSE)
+```
+## Visualizing Class Profiles
+
+```{r, echo=FALSE}
+# Custom ggplot2 profile plot (more control)
+library(ggplot2)
+
+# get_estimates() returns: Model, Classes, Class, Parameter, Estimate, SE, p, Item
+ests = get_estimates(lpa_3class)
+ests_means = ests[ests$Category == "Means", ]
+
+# Label classes by species
+ests_means$Class_label = factor(ests_means$Class,
+                                levels = 1:3,
+                                labels = c("Class 1 (setosa)",
+                                           "Class 2 (versicolor)",
+                                           "Class 3 (virginica)"))
+
+ggplot(ests_means, aes(x = Parameter, y = Estimate,
+                       group = Class_label, color = Class_label)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 3) +
+  labs(x = "Variable", y = "Mean",
+       title = "LPA Profile Plot: 3-Class Solution",
+       color = "Class") +
+  theme_bw(base_size = 14)
+```
+
+## Evaluating Classification Quality
+
+```{r, eval=FALSE}
+# Average posterior probability for most likely class assignment
+# (a measure of classification certainty)
+lpa_3class_data = get_data(lpa_3class)
+
+avg_posterior = tapply(lpa_3class_data$Probability,
+                       lpa_3class_data$Class,
+                       mean)
+print(round(avg_posterior, 3))
+```
+
+```
+Class 1  Class 2  Class 3
+  1.000    0.970    0.966
+```
+
+- Class 1 (setosa) is perfectly separated from the others
+- Classes 2 and 3 have 3–4% overlap — the two larger species are harder to distinguish
+- Matches the known botanical overlap between *versicolor* and *virginica*
+
+# Concluding Remarks
+
+## {.center}
+
+::: {style="text-align: center; font-size: 2em;"}
+Concluding Remarks
+:::
+
+## LCA vs. LPA: Comparison
+
+| Feature | LCA | LPA |
+|:--------|:----|:----|
+| Indicator type | Binary / categorical | Continuous |
+| Within-class distribution | Bernoulli | Normal |
+| Class parameters | Item probabilities ($\pi_{jc}$) | Means ($\mu_{jc}$) and variances ($\sigma^2_{jc}$) |
+| R package | `poLCA` | `tidyLPA` |
+
+## Extensions of These Methods
+
+- Many extensions exist in recent empirical research:
+  - **Growth Mixture Models** — detect groups with differing growth trajectories over time
+  - **Diagnostic Classification Models** — confirmatory LCA specifying class characteristics *prior* to analysis; used in psychological and educational testing
+  - **Mixture IRT Models** — combine item response theory with latent class structure
+  - **Mixture Regression Models** — latent classes defined by distinct regression relationships
+  - **General Finite Mixture Models** — virtually any statistical distribution can form a mixture model
+
+## Concluding Remarks
+
+- LCA and LPA are **model-based techniques** for identifying latent clusters
+- Both methods make explicit, testable assumptions about the data
+- Key practical challenges:
+  - The number of classes must be inferred — no single definitive criterion
+  - Information criteria often favor **over-extraction** (too many classes)
+  - Multiple local maxima are possible — always use many random starts (`nrep`)
+- **Use these methods carefully** — they are exploratory and prone to spurious findings
+  - Validate results with substantive knowledge
+  - Seek convergence across multiple fit indices
+  - Replicate with independent samples when possible
+
+## References
+
+- Lazarsfeld, P. F. & Henry, N. W. (1968). *Latent structure analysis*. Houghton Mifflin.
+- Linzer, D. A. & Lewis, J. B. (2011). poLCA: An R package for polytomous variable latent class analysis. *Journal of Statistical Software, 42*(10), 1–29.
+- Macready, G. B. & Dayton, C. M. (1977). The use of probabilistic models in the assessment of mastery. *Journal of Educational Statistics, 2*(2), 99–120.
+- Rosenberg, J. M., van Lissa, C. J., Beymer, P. N., Anderson, D. J., Schell, M. J., & Schmidt, J. A. (2018). tidyLPA: An R package to easily carry out latent profile analysis (LPA). *Journal of Open Source Software, 3*(30), 978.
